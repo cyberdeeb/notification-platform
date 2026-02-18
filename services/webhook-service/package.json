@@ -4,7 +4,7 @@
   "description": "Webhook service",
   "main": "index.js",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "ts-node src/index.ts",
     "dev": "nodemon src/index.js"
   },
   "keywords": [],
@@ -13,6 +13,7 @@
   "type": "commonjs",
   "dependencies": {
     "amqplib": "^0.10.9",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1"
   },
   "devDependencies": {
