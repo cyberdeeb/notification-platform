@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  webhook-service:
+    build: ./services/webhook-service
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+
+  router-service:
+    build: ./services/router-service
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - webhook-service
+
+  email-worker:
+    build: ./services/email-worker
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - router-service
+
+  sms-worker:
+    build: ./services/sms-worker
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - router-service
