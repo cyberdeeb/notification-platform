@@ -1,32 +1,17 @@
 version: '3.8'
 
 services:
-  webhook-service:
-    build: ./services/webhook-service
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
     ports:
-      - "3000:3000"
+      - '5672:5672'
+      - '15672:15672'
     environment:
-      - NODE_ENV=development
-
-  router-service:
-    build: ./services/router-service
-    ports:
-      - "3001:3000"
-    environment:
-      - NODE_ENV=development
-    depends_on:
-      - webhook-service
-
-  email-worker:
-    build: ./services/email-worker
-    environment:
-      - NODE_ENV=development
-    depends_on:
-      - router-service
-
-  sms-worker:
-    build: ./services/sms-worker
-    environment:
-      - NODE_ENV=development
-    depends_on:
-      - router-service
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
