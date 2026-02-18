@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import { publishEvent } from './publisher';
+import { WebhookPayload } from './types';
 import 'dotenv/config';
 
 const app = express();
@@ -11,11 +12,26 @@ app.use(express.json());
 // Webhook endpoint to receive events
 app.post('/webhook', async (req: Request, res: Response) => {
   try {
-    const payload = req.body;
-    console.log('Received webhook event:', payload);
-    if (!payload) {
-      return res.status(400).send('Payload is required');
+    const body = req.body;
+    if (!body) {
+      res.status(400).send('Request body is required');
+      return;
     }
+
+    if (!body.provider || !body.event || !body.userId) {
+      res.status(400).send('Missing required fields: provider, event, userId');
+      return;
+    }
+
+    const payload: WebhookPayload = {
+      provider: body.provider,
+      event: body.event,
+      userId: body.userId,
+      data: body.data || {},
+      timestamp: new Date().toISOString(),
+    };
+
+    console.log('Received webhook event:', payload);
     await publishEvent(payload);
     res.status(200).send('Event published successfully');
   } catch (error) {
