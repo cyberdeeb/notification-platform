@@ -1,6 +1,8 @@
 import { connectRabbitMQ } from './utils/connection';
 import { routeEvent } from './router';
 
+// This service listens to the 'raw-events' queue, processes incoming events,
+// and routes them to the appropriate notification channels (email or SMS) based on the event type.
 export const consumeEvents = async () => {
   const { channel } = await connectRabbitMQ();
   await channel.assertQueue('raw-events', { durable: true });
