@@ -1,5 +1,11 @@
 import { Pool } from 'pg';
 
+if (!process.env.POSTGRES_URL) {
+  throw new Error(
+    'PostgreSQL connection string is not set in environment variables',
+  );
+}
+
 // Create a connection pool to the PostgreSQL database
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
