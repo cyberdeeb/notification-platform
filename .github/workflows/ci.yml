@@ -11,18 +11,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-      
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-      
-      - name: Install dependencies
-        run: npm install
-      
-      - name: Build
-        run: npm run build
-      
-      - name: Test
-        run: npm test
+          node-version: 20
+
+      - name: Install and build webhook-service
+        working-directory: services/webhook-service
+        run: |
+          npm install
+          npm run build
+
+      - name: Install and build router-service
+        working-directory: services/router-service
+        run: |
+          npm install
+          npm run build
+
+      - name: Install and build email-worker
+        working-directory: services/email-worker
+        run: |
+          npm install
+          npm run build
+
+      - name: Install and build sms-worker
+        working-directory: services/sms-worker
+        run: |
+          npm install
+          npm run build
+
+      - name: Build Docker images
+        run: docker compose build
