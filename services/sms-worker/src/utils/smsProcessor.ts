@@ -1,25 +1,20 @@
-import twilio from 'twilio';
+import axios from 'axios';
 
-if (
-  !process.env.TWILIO_ACCOUNT_SID ||
-  !process.env.TWILIO_AUTH_TOKEN ||
-  !process.env.TWILIO_PHONE_NUMBER
-) {
-  throw new Error('Twilio credentials are not set in environment variables');
+if (!process.env.TEXTBELT_API_KEY) {
+  throw new Error('TEXTBELT_API_KEY is not set in environment variables');
 }
 
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID!,
-  process.env.TWILIO_AUTH_TOKEN!,
-);
-
 export async function sendSMS(to: string, message: string) {
-  const result = await client.messages.create({
-    from: process.env.TWILIO_PHONE_NUMBER!,
-    to,
-    body: message,
+  const response = await axios.post('https://textbelt.com/text', {
+    phone: to,
+    message,
+    key: process.env.TEXTBELT_API_KEY,
   });
 
-  console.log('SMS sent:', result.sid);
-  return result;
+  if (!response.data.success) {
+    throw new Error(`SMS failed: ${response.data.error}`);
+  }
+
+  console.log('SMS sent, textId:', response.data.textId);
+  return response.data;
 }

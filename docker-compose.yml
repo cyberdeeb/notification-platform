@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   rabbitmq:
     image: rabbitmq:3-management
@@ -33,6 +31,50 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  webhook-service:
+    build: ./services/webhook-service
+    container_name: webhook-service
+    ports:
+      - '3000:3000'
+    env_file:
+      - ./services/webhook-service/.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  router-service:
+    build: ./services/router-service
+    container_name: router-service
+    env_file:
+      - ./services/router-service/.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  email-worker:
+    build: ./services/email-worker
+    container_name: email-worker
+    env_file:
+      - ./services/email-worker/.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  sms-worker:
+    build: ./services/sms-worker
+    container_name: sms-worker
+    env_file:
+      - ./services/sms-worker/.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:
