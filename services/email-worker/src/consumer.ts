@@ -27,7 +27,10 @@ export const consumeEmailEvents = async () => {
         await sendEmail(
           user.email,
           `Notification: ${event.event}`,
-          `<p> Hello, ${user.name}, You have a new notification: ${JSON.stringify(event.data)}</p>`,
+          `<h2>Hello ${user.name},</h2>
+   <p>You have a new <strong>${event.event}</strong> notification from <strong>${event.provider}</strong>.</p>
+   <p>Details: ${JSON.stringify(event.data, null, 2)}</p>
+   <p>Received at: ${event.timestamp}</p>`,
         );
         channel.ack(msg);
       } catch (error) {

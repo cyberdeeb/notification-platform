@@ -21,10 +21,10 @@ export const consumeSMSEvents = async () => {
           channel.ack(msg);
           return;
         }
-        // Send SMS using the Twilio API
+        // Send SMS using the Textbelt API
         await sendSMS(
           user.phone,
-          `Notification: ${event.event}: ${JSON.stringify(event.data)}`,
+          `Hi ${user.name}, you have a new ${event.event} notification from ${event.provider}.`,
         );
         channel.ack(msg);
       } catch (error) {
