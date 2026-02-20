@@ -8,7 +8,25 @@ import { sendEmail } from './utils/emailProcessor';
 export const consumeEmailEvents = async () => {
   // Connect to RabbitMQ
   const { channel } = await connectRabbitMQ();
-  await channel.assertQueue('email-notifications', { durable: true });
+  // Set up the dead-letter exchange and queue
+  await channel.assertExchange('dead-letter-exchange', 'direct', {
+    durable: true,
+  });
+  await channel.assertQueue('dead-letter-queue', { durable: true });
+  await channel.bindQueue(
+    'dead-letter-queue',
+    'dead-letter-exchange',
+    'dead-letter',
+  );
+  // Set up the main queue with dead-lettering
+  await channel.assertQueue('email-notifications', {
+    durable: true,
+    arguments: {
+      'x-dead-letter-exchange': 'dead-letter-exchange',
+      'x-dead-letter-routing-key': 'dead-letter',
+    },
+  });
+
   channel.consume('email-notifications', async (msg) => {
     if (msg) {
       try {
@@ -18,9 +36,9 @@ export const consumeEmailEvents = async () => {
         const user: User = await getUserById(event.userId);
         if (!user) {
           console.warn(
-            `User with ID ${event.userId} not found. Skipping email.`,
+            `User with ID ${event.userId} not found. Sending to DLQ.`,
           );
-          channel.ack(msg);
+          channel.nack(msg, false, false);
           return;
         }
         // Send email using the Resend API

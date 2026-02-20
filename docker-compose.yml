@@ -76,5 +76,14 @@ services:
       postgres:
         condition: service_healthy
 
+  dead-letter-service:
+    build: ./services/dead-letter-service
+    container_name: dead-letter-service
+    env_file:
+      - ./services/dead-letter-service/.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
 volumes:
   postgres_data:

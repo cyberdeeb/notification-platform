@@ -8,7 +8,27 @@ import { sendSMS } from './utils/smsProcessor';
 export const consumeSMSEvents = async () => {
   // Connect to RabbitMQ
   const { channel } = await connectRabbitMQ();
-  await channel.assertQueue('sms-notifications', { durable: true });
+  // Set up the dead-letter exchange and queue
+  await channel.assertExchange('dead-letter-exchange', 'direct', {
+    durable: true,
+  });
+  await channel.assertQueue('dead-letter-queue', { durable: true });
+  // Bind the dead-letter queue to the exchange
+  await channel.bindQueue(
+    'dead-letter-queue',
+    'dead-letter-exchange',
+    'dead-letter',
+  );
+
+  // Set up the main queue with dead-lettering
+  await channel.assertQueue('sms-notifications', {
+    durable: true,
+    arguments: {
+      'x-dead-letter-exchange': 'dead-letter-exchange',
+      'x-dead-letter-routing-key': 'dead-letter',
+    },
+  });
+
   channel.consume('sms-notifications', async (msg) => {
     if (msg) {
       try {
@@ -17,8 +37,10 @@ export const consumeSMSEvents = async () => {
         // Retrieve user information from the database
         const user: User = await getUserById(event.userId);
         if (!user) {
-          console.warn(`User with ID ${event.userId} not found. Skipping SMS.`);
-          channel.ack(msg);
+          console.warn(
+            `User with ID ${event.userId} not found. Sending to DLQ.`,
+          );
+          channel.nack(msg, false, false);
           return;
         }
         // Send SMS using the Textbelt API
