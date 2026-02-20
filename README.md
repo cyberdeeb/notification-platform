@@ -1,6 +1,6 @@
 # Notification Platform
 
-![CI](https://github.com/YOUR_USERNAME/notification-platform/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/cyberdeeb/notification-platform/actions/workflows/ci.yml/badge.svg)
 
 A real-time, event-driven notification platform built with a microservices architecture. External services send webhook events to the platform, which routes them through a message broker and delivers notifications to users via email or SMS.
 
@@ -99,7 +99,7 @@ Subscribes to `dead-letter-queue`. When a message is rejected by any worker — 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/notification-platform.git
+git clone https://github.com/cyberdeeb/notification-platform.git
 cd notification-platform
 ```
 
