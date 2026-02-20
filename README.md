@@ -1,6 +1,6 @@
 # Notification Platform
 
-![CI](https://github.com/cyberdeeb/notification-platform/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/YOUR_USERNAME/notification-platform/actions/workflows/ci.yml/badge.svg)
 
 A real-time, event-driven notification platform built with a microservices architecture. External services send webhook events to the platform, which routes them through a message broker and delivers notifications to users via email or SMS.
 
@@ -35,8 +35,12 @@ External Service
 └───────┘ └───────┘
     │         │
     ▼         ▼
- Resend   Textbelt
-(Email)    (SMS)
+ Resend   Textbelt       On failure (nack)
+(Email)    (SMS)               │
+                               ▼
+                    ┌──────────────────────┐
+                    │ Dead Letter Service  │  ← Catches & logs failed messages
+                    └──────────────────────┘
 ```
 
 ---
@@ -59,6 +63,10 @@ Subscribes to `email-notifications`. Looks up the user by `userId` in Postgres, 
 
 Subscribes to `sms-notifications`. Looks up the user by `userId` in Postgres, then sends an SMS notification via the Textbelt API.
 
+### Dead Letter Service
+
+Subscribes to `dead-letter-queue`. When a message is rejected by any worker — for example due to an unknown `userId` — RabbitMQ automatically routes it here. Logs the full message content and death headers including origin queue, failure reason, and timestamp.
+
 ---
 
 ## Tech Stack
@@ -74,6 +82,7 @@ Subscribes to `sms-notifications`. Looks up the user by `userId` in Postgres, th
 | Resend                  | Email delivery                   |
 | Textbelt                | SMS delivery                     |
 | GitHub Actions          | CI/CD pipeline                   |
+| Dead Letter Queue       | Failed message recovery          |
 
 ---
 
@@ -156,7 +165,7 @@ TEXTBELT_API_KEY=
 docker compose up --build
 ```
 
-All six containers will start — RabbitMQ, Postgres, webhook service, router service, email worker, and SMS worker.
+All seven containers will start — RabbitMQ, Postgres, webhook service, router service, email worker, SMS worker, and dead letter service.
 
 ---
 
@@ -221,6 +230,30 @@ All incoming webhook requests must follow this structure:
 | event    | string | ✅       | Event type. Use `sms` to route to SMS worker |
 | userId   | string | ✅       | Must match a user in the database            |
 | data     | object | ❌       | Any additional event metadata                |
+
+---
+
+## Dead Letter Queue
+
+Failed messages are automatically routed to a dead letter queue instead of being dropped. This ensures no message is silently lost.
+
+### How it works
+
+Every queue in the platform (`raw-events`, `email-notifications`, `sms-notifications`) is configured with a dead letter exchange. When a message is rejected — for example because a `userId` doesn't exist in the database — RabbitMQ automatically forwards it to the `dead-letter-queue` instead of discarding it.
+
+A dedicated **dead-letter-service** subscribes to `dead-letter-queue` and logs each failed message along with its death headers, which include the origin queue, reason for failure, and timestamp.
+
+### Test the dead letter queue
+
+Send a webhook with a `userId` that doesn't exist in the database:
+
+```bash
+curl -X POST http://localhost:3000/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"provider": "github", "event": "push", "userId": "user_999", "data": {"repo": "my-project"}}'
+```
+
+You should see the email worker warn that the user was not found, and the dead letter service log the failed message with full death headers showing which queue it came from and why it was rejected.
 
 ---
 
